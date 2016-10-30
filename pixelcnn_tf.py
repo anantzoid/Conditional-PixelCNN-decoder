@@ -1,10 +1,10 @@
 # TODO
 # try changing 0.0 to np.random
-# make for imagenet data
 # check network arch
 # upscale-downscale-q_level
-# cost on test set
 # autoencoder
+# cost on test set
+# make for imagenet data
 
 import tensorflow as tf
 import numpy as np
@@ -38,7 +38,7 @@ for i in range(LAYERS):
     i = str(i)
 
     with tf.variable_scope("v_stack"+i):
-        v_stack = PixelCNN([FILTER_SIZE, FILTER_SIZE, in_dim, F_MAP], [F_MAP], v_stack_in, mask=mask).output()
+        v_stack = PixelCNN([FILTER_SIZE, FILTER_SIZE, in_dim, F_MAP], [F_MAP], v_stack_in, mask='a').output()
         v_stack_in = v_stack
 
     with tf.variable_scope("v_stack_1"+i):
@@ -97,8 +97,8 @@ with tf.Session() as sess:
                     .reshape([batch_size, img_height, img_width, 1]))
             _, cost = sess.run([optimizer, loss], feed_dict={X:batch_X})
 
-        print "Epoch: %d, Cost: %.2f"%(i, cost)
+        print "Epoch: %d, Cost: %f"%(i, cost)
         generate_and_save(sess)
 
-generate_and_save(sess)
+    generate_and_save(sess)
 

@@ -1,9 +1,9 @@
 import tensorflow as tf
 import numpy as np
 
-def get_weights(shape, mask=None):
+def get_weights(shape, name, mask=None):
     weights_initializer = tf.contrib.layers.xavier_initializer()
-    W = tf.get_variable("weights", shape, tf.float32, weights_initializer)
+    W = tf.get_variable(name, shape, tf.float32, weights_initializer)
 
     if mask:
         filter_mid_x = shape[0]//2
@@ -18,9 +18,8 @@ def get_weights(shape, mask=None):
         W *= mask_filter 
     return W
 
-
-def get_bias(shape):
-    return tf.get_variable("biases", shape, tf.float32, tf.zeros_initializer)
+def get_bias(shape, name):
+    return tf.get_variable(name, shape, tf.float32, tf.zeros_initializer)
 
 def conv_op(x, W):
     return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='SAME')
@@ -40,11 +39,11 @@ class PixelCNN():
             self.simple_conv()
 
     def gated_conv(self):
-        W_f = get_weights(self.W_shape, mask=self.mask)
-        b_f = get_bias(self.b_shape)
-        W_g = get_weights(self.W_shape, mask=self.mask)
-        b_g = get_bias(self.b_shape)
-       
+        W_f = get_weights(self.W_shape, "v_W", mask=self.mask)
+        b_f = get_bias(self.b_shape, "v_b")
+        W_g = get_weights(self.W_shape, "h_W", mask=self.mask)
+        b_g = get_bias(self.b_shape, "h_b")
+      
         conv_f = conv_op(self.fan_in, W_f)
         conv_g = conv_op(self.fan_in, W_g)
        
@@ -55,8 +54,8 @@ class PixelCNN():
         self.fan_out = tf.mul(tf.tanh(conv_f + b_f), tf.sigmoid(conv_g + b_g))
 
     def simple_conv(self):
-        W = get_weights(self.W_shape, mask=self.mask)
-        b = get_bias(self.b_shape)
+        W = get_weights(self.W_shape, "W", mask=self.mask)
+        b = get_bias(self.b_shape, "b")
         conv = conv_op(self.fan_in, W)
         if self.activation: 
             self.fan_out = tf.nn.relu(tf.add(conv, b))
