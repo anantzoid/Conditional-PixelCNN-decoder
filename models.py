@@ -2,8 +2,8 @@ import tensorflow as tf
 import numpy as np
 
 def get_weights(shape, mask=None):
-    # TODO set init bounds
-    W = tf.Variable(tf.truncated_normal(shape=shape, stddev=0.1))
+    weights_initializer = tf.contrib.layers.xavier_initializer()
+    W = tf.get_variable("weights", shape, tf.float32, weights_initializer)
 
     if mask:
         filter_mid_x = shape[0]//2
@@ -20,7 +20,7 @@ def get_weights(shape, mask=None):
 
 
 def get_bias(shape):
-    return tf.Variable(tf.constant(shape=shape, value=0.1, dtype=tf.float32))
+    return tf.get_variable("biases", shape, tf.float32, tf.zeros_initializer)
 
 def conv_op(x, W):
     return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='SAME')
@@ -59,9 +59,9 @@ class PixelCNN():
         b = get_bias(self.b_shape)
         conv = conv_op(self.fan_in, W)
         if self.activation: 
-            self.fan_out = tf.nn.relu(conv + b)
+            self.fan_out = tf.nn.relu(tf.add(conv, b))
         else:
-            self.fan_out = conv + b
+            self.fan_out = tf.add(conv, b)
 
 
     def output(self):
