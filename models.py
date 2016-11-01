@@ -25,13 +25,16 @@ def conv_op(x, W):
     return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='SAME')
 
 class PixelCNN():
-    def __init__(self, W_shape, b_shape, fan_in, gated=True, payload=None, mask=None, activation=True):
-        self.W_shape = W_shape
-        self.b_shape = b_shape
+    def __init__(self, W_shape, fan_in, gated=True, payload=None, mask=None, activation=True):
         self.fan_in = fan_in
+        in_dim = self.fan_in.get_shape()[-1]
+        self.W_shape = [W_shape[0], W_shape[1], in_dim, W_shape[2]]  
+        self.b_shape = W_shape[2]
+
         self.payload = payload
         self.mask = mask
         self.activation = activation
+        
 
         if gated:
             self.gated_conv()
@@ -61,7 +64,6 @@ class PixelCNN():
             self.fan_out = tf.nn.relu(tf.add(conv, b))
         else:
             self.fan_out = tf.add(conv, b)
-
 
     def output(self):
         return self.fan_out 
