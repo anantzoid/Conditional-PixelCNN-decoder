@@ -1,84 +1,71 @@
 import tensorflow as tf
 import numpy as np
-from tensorflow.examples.tutorials.mnist import input_data
+import argparse
 from models import PixelCNN
 from utils import *
 
-mnist = input_data.read_data_sets("data/")
-epochs = 50
-batch_size = 100
-grad_clip = 1
-num_batches = mnist.train.num_examples // batch_size
-ckpt_dir = "ckpts"
-samples_dir = "samples"
-if not os.path.isdir(ckpt_dir):
-    os.makedirs(ckpt_dir)
-ckpt_file = os.path.join(ckpt_dir, "model.ckpt")
+def train(conf, data):
+    model = PixelCNN(conf)
+    loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(model.fc2, model.X))
 
-img_height = 28
-img_width = 28
-channel = 1
+    trainer = tf.train.RMSPropOptimizer(1e-3)
+    gradients = trainer.compute_gradients(loss)
 
-LAYERS = 12
-F_MAP = 32
-FILTER_SIZE = 7
+    clipped_gradients = [(tf.clip_by_value(_[0], -conf.grad_clip, conf.grad_clip), _[1]) for _ in gradients]
+    optimizer = trainer.apply_gradients(clipped_gradients)
 
-X = tf.placeholder(tf.float32, shape=[None, img_height, img_width, channel])
-v_stack_in, h_stack_in = X, X
+    saver = tf.train.Saver(tf.trainable_variables())
+    with tf.Session() as sess: 
+        if os.path.exists(conf.ckpt_file):
+            saver.restore(sess, conf.ckpt_file)
+            print "Model Restored"
+        else:
+            sess.run(tf.initialize_all_variables())
 
-for i in range(LAYERS):
-    FILTER_SIZE = 3 if i > 0 else FILTER_SIZE
-    in_dim = F_MAP if i > 0 else channel
-    mask = 'b' if i > 0 else 'a'
-    residual = True if i > 0 else False
-    i = str(i)
-    with tf.variable_scope("v_stack"+i):
-        v_stack = PixelCNN([FILTER_SIZE, FILTER_SIZE, F_MAP], v_stack_in, mask=mask).output()
-        v_stack_in = v_stack
+        for i in range(conf.epochs):
+            for j in range(conf.num_batches):
+                batch_X = binarize(data.train.next_batch(conf.batch_size)[0] \
+                        .reshape([conf.batch_size, conf.img_height, conf.img_width, conf.channel]))
+                _, cost = sess.run([optimizer, loss], feed_dict={model.X:batch_X})
 
-    with tf.variable_scope("v_stack_1"+i):
-        v_stack_1 = PixelCNN([1, 1, F_MAP], v_stack_in, gated=False, mask=mask).output()
+                print "Epoch: %d, Cost: %f"%(i, cost)
 
-    with tf.variable_scope("h_stack"+i):
-        h_stack = PixelCNN([1, FILTER_SIZE, F_MAP], h_stack_in, payload=v_stack_1, mask=mask).output()
+        generate_and_save(sess, model.X, model.pred, conf)
+        saver.save(sess, conf.ckpt_file)
 
-    with tf.variable_scope("h_stack_1"+i):
-        h_stack_1 = PixelCNN([1, 1, F_MAP], h_stack, gated=False, mask=mask).output()
-        if residual:
-            h_stack_1 += h_stack_in # Residual connection
-        h_stack_in = h_stack_1
 
-with tf.variable_scope("fc_1"):
-    fc1 = PixelCNN([1, 1, F_MAP], h_stack_in, gated=False, mask='b').output()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--type', type=str, default='train')
+    parser.add_argument('--data', type=str, default='mnist')
+    parser.add_argument('--layers', type=int, default=12)
+    parser.add_argument('--f_map', type=int, default=32)
+    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--batch_size', type=int, default=100)
+    parser.add_argument('--grad_clip', type=int, default=1)
+    parser.add_argument('--data_path', type=str, default='data')
+    parser.add_argument('--ckpt_path', type=str, default='ckpts')
+    parser.add_argument('--samples_path', type=str, default='samples')
+    conf = parser.parse_args()
+  
+    if conf.data == 'mnist':
+        from tensorflow.examples.tutorials.mnist import input_data
+        if not os.path.exists(conf.data_path):
+            os.makedirs(conf.data_path)
+        data = input_data.read_data_sets(conf.data_path)
+        conf.img_height = 28
+        conf.img_width = 28
+        conf.channel = 1
+        conf.num_batches = 10#mnist.train.num_examples // conf.batch_size
+        conf.filter_size = 7
 
-# handle Imagenet differently
-with tf.variable_scope("fc_2"):
-    fc2 = PixelCNN([1, 1, 1], fc1, gated=False, mask='b', activation=False).output()
-pred = tf.nn.sigmoid(fc2)
+    ckpt_full_path = os.path.join(conf.ckpt_path, "data=%s_bs=%d_layers=%d_fmap=%d"%(conf.data, conf.batch_size, conf.layers, conf.f_map))
+    if not os.path.exists(ckpt_full_path):
+        os.makedirs(ckpt_full_path)
+    conf.ckpt_file = os.path.join(ckpt_full_path, "model.ckpt")
 
-loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(fc2, X))
+    conf.samples_path = os.path.join(conf.samples_path, "epoch=%d_bs=%d_layers=%d_fmap=%d"%(conf.epochs, conf.batch_size, conf.layers, conf.f_map))
+    if not os.path.exists(conf.samples_path):
+        os.makedirs(conf.samples_path)
 
-trainer = tf.train.RMSPropOptimizer(1e-3)
-gradients = trainer.compute_gradients(loss)
-
-clipped_gradients = [(tf.clip_by_value(_[0], -grad_clip, grad_clip), _[1]) for _ in gradients]
-optimizer = trainer.apply_gradients(clipped_gradients)
-
-saver = tf.train.Saver()
-with tf.Session() as sess: 
-    if os.path.exists(ckpt_file):
-        saver.restore(sess, ckpt_file)
-        print "Model Restored"
-    else:
-        sess.run(tf.initialize_all_variables())
-
-    for i in range(epochs):
-        for j in range(num_batches):
-            batch_X = binarize(mnist.train.next_batch(batch_size)[0] \
-                    .reshape([batch_size, img_height, img_width, 1]))
-            _, cost = sess.run([optimizer, loss], feed_dict={X:batch_X})
-
-            print "Epoch: %d, Cost: %f"%(i, cost)
-
-    generate_and_save(sess, X, pred, img_height, img_width, epochs, samples_dir)
-    saver.save(sess, ckpt_file)
+    train(conf, data)
