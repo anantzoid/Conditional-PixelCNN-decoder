@@ -7,22 +7,23 @@ class PixelCNN():
         self.X = tf.placeholder(tf.float32, shape=[None, conf.img_height, conf.img_width, conf.channel])
         self.X_norm = self.X if conf.data == "mnist" else tf.div(self.X, 255.0)
         v_stack_in, h_stack_in = self.X_norm, self.X_norm
+        # TODO norm for multichannel: dubtract mean and divide by std feature-wise
+        self.h = tf.placeholder(tf.float32, shape=[None, conf.num_classes])
 
         for i in range(conf.layers):
             filter_size = 3 if i > 0 else 7
-            in_dim = conf.f_map if i > 0 else conf.channel
             mask = 'b' if i > 0 else 'a'
             residual = True if i > 0 else False
             i = str(i)
             with tf.variable_scope("v_stack"+i):
-                v_stack = GatedCNN([filter_size, filter_size, conf.f_map], v_stack_in, mask=mask).output()
+                v_stack = GatedCNN([filter_size, filter_size, conf.f_map], v_stack_in, mask=mask, conditional=self.h).output()
                 v_stack_in = v_stack
 
             with tf.variable_scope("v_stack_1"+i):
                 v_stack_1 = GatedCNN([1, 1, conf.f_map], v_stack_in, gated=False, mask=mask).output()
 
             with tf.variable_scope("h_stack"+i):
-                h_stack = GatedCNN([1, filter_size, conf.f_map], h_stack_in, payload=v_stack_1, mask=mask).output()
+                h_stack = GatedCNN([1, filter_size, conf.f_map], h_stack_in, payload=v_stack_1, mask=mask, conditional=self.h).output()
 
             with tf.variable_scope("h_stack_1"+i):
                 h_stack_1 = GatedCNN([1, 1, conf.f_map], h_stack, gated=False, mask=mask).output()
@@ -36,7 +37,7 @@ class PixelCNN():
         if conf.data == "mnist":
             with tf.variable_scope("fc_2"):
                 self.fc2 = GatedCNN([1, 1, 1], fc1, gated=False, mask='b', activation=False).output()
-            self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(model.fc2, model.X))
+            self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.fc2, self.X))
             self.pred = tf.nn.sigmoid(self.fc2)
         else:
             color_dim = 256

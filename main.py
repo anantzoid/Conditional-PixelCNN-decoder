@@ -25,12 +25,16 @@ def train(conf, data):
         for i in range(conf.epochs):
             for j in range(conf.num_batches):
                 if conf.data == "mnist":
-                    batch_X = binarize(data.train.next_batch(conf.batch_size)[0] \
-                        .reshape([conf.batch_size, conf.img_height, conf.img_width, conf.channel]))
+                    batch_X, batch_y = data.train.next_batch(conf.batch_size)
+                    batch_X = binarize(batch_X.reshape([conf.batch_size, \
+                            conf.img_height, conf.img_width, conf.channel]))
+                    y_ = np.zeros((batch_y.shape[0], conf.num_classes))
+                    y_[np.arange(batch_y.shape[0]), batch_y] = 1
+                    batch_y = y_
                 else:
                     batch_X, pointer = get_batch(data, pointer, conf.batch_size)
 
-                _, cost = sess.run([optimizer, model.loss], feed_dict={model.X:batch_X})
+                _, cost = sess.run([optimizer, model.loss], feed_dict={model.X:batch_X, model.h:batch_y})
 
             print "Epoch: %d, Cost: %f"%(i, cost)
 
@@ -57,10 +61,11 @@ if __name__ == "__main__":
         if not os.path.exists(conf.data_path):
             os.makedirs(conf.data_path)
         data = input_data.read_data_sets(conf.data_path)
+        conf.num_classes = 10
         conf.img_height = 28
         conf.img_width = 28
         conf.channel = 1
-        conf.num_batches = mnist.train.num_examples // conf.batch_size
+        conf.num_batches = 10#mnist.train.num_examples // conf.batch_size
     else:
         import cPickle
         data = cPickle.load(open('cifar-100-python/train', 'r'))['data']
@@ -70,6 +75,8 @@ if __name__ == "__main__":
         data = np.reshape(data, (data.shape[0], conf.channel, \
                 conf.img_height, conf.img_width))
         data = np.transpose(data, (0, 2, 3, 1))
+        raise ValueError("Specify num_classes")
+        conf.num_classes = 10
 
         # Implementing tf.image.per_image_whitening for normalization
         # data = (data-np.mean(data)) / max(np.std(data), 1.0/np.sqrt(sum(data.shape))) * 255.0

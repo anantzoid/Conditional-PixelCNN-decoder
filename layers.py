@@ -25,7 +25,7 @@ def conv_op(x, W):
     return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='SAME')
 
 class GatedCNN():
-    def __init__(self, W_shape, fan_in, gated=True, payload=None, mask=None, activation=True):
+    def __init__(self, W_shape, fan_in, gated=True, payload=None, mask=None, activation=True, conditional=None):
         self.fan_in = fan_in
         in_dim = self.fan_in.get_shape()[-1]
         self.W_shape = [W_shape[0], W_shape[1], in_dim, W_shape[2]]  
@@ -34,8 +34,9 @@ class GatedCNN():
         self.payload = payload
         self.mask = mask
         self.activation = activation
+        # TODO need to map (batch_size,num_classes) to (f_map,)
+        self.conditional = None#conditional
         
-
         if gated:
             self.gated_conv()
         else:
@@ -43,10 +44,17 @@ class GatedCNN():
 
     def gated_conv(self):
         W_f = get_weights(self.W_shape, "v_W", mask=self.mask)
-        b_f = get_bias(self.b_shape, "v_b")
         W_g = get_weights(self.W_shape, "h_W", mask=self.mask)
-        b_g = get_bias(self.b_shape, "h_b")
-      
+        if self.conditional is not None:
+            h_shape = int(self.conditional.get_shape()[1])
+            V_f = get_weights([h_shape, self.W_shape[3]], "v_V")
+            b_f = tf.matmul(self.conditional, V_f)
+            V_g = get_weights([h_shape, self.W_shape[3]], "h_V")
+            b_g = tf.matmul(self.conditional, V_g)
+        else:
+            b_f = get_bias(self.b_shape, "v_b")
+            b_g = get_bias(self.b_shape, "h_b")
+
         conv_f = conv_op(self.fan_in, W_f)
         conv_g = conv_op(self.fan_in, W_g)
        
