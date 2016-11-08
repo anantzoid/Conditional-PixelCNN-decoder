@@ -9,11 +9,13 @@ def binarize(images):
 
 def generate_and_save(sess, X, pred, conf):
     n_row, n_col = 5, 5
-    samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, 1), dtype=np.float32)
+    samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     for i in xrange(conf.img_height):
         for j in xrange(conf.img_width):
-            for k in xrange(1):
-                next_sample = binarize(sess.run(pred, {X:samples}))
+            for k in xrange(conf.channel):
+                next_sample = sess.run(pred, {X:samples})
+                if data == "mnist":
+                    next_sample = binarize(next_sample)
                 samples[:, i, j, k] = next_sample[:, i, j, k]
     images = samples 
     images = images.reshape((n_row, n_col, conf.img_height, conf.img_width))

@@ -4,8 +4,7 @@ from layers import GatedCNN
 class PixelCNN():
     def __init__(self, conf):
         
-        data_shape = [conf.batch_size, conf.img_height, conf.img_width, conf.channel]
-        self.X = tf.placeholder(tf.float32, shape=data_shape)
+        self.X = tf.placeholder(tf.float32, shape=[None, conf.img_height, conf.img_width, conf.channel])
         self.X_norm = self.X if conf.data == "mnist" else tf.div(self.X, 255.0)
         v_stack_in, h_stack_in = self.X_norm, self.X_norm
 
@@ -56,5 +55,5 @@ class PixelCNN():
             #self.loss = tf.reduce_mean(-tf.reduce_sum(X_ohehot * tf.log(self.fc2), reduction_indices=[1]))
 
             # NOTE or check without argmax
-            self.preds = tf.reshape(tf.argmax(tf.nn.softmax(self.fc2), dimension=tf.rank(self.fc2) - 1), data_shape)
+            self.pred = tf.reshape(tf.argmax(tf.nn.softmax(self.fc2), dimension=tf.rank(self.fc2) - 1), tf.shape(self.X))
 

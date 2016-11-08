@@ -16,12 +16,11 @@ def train(conf, data):
     saver = tf.train.Saver(tf.trainable_variables())
 
     with tf.Session() as sess: 
+        sess.run(tf.initialize_all_variables())
         if os.path.exists(conf.ckpt_file):
             saver.restore(sess, conf.ckpt_file)
             print "Model Restored"
-        else:
-            sess.run(tf.initialize_all_variables())
-        
+       
         pointer = 0
         for i in range(conf.epochs):
             for j in range(conf.num_batches):
@@ -35,8 +34,8 @@ def train(conf, data):
 
             print "Epoch: %d, Cost: %f"%(i, cost)
 
-        generate_and_save(sess, model.X, model.pred, conf)
         saver.save(sess, conf.ckpt_file)
+        generate_and_save(sess, model.X, model.pred, conf)
 
 
 if __name__ == "__main__":
