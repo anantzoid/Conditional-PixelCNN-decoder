@@ -34,8 +34,7 @@ class GatedCNN():
         self.payload = payload
         self.mask = mask
         self.activation = activation
-        # TODO need to map (batch_size,num_classes) to (f_map,)
-        self.conditional = None#conditional
+        self.conditional = conditional
         
         if gated:
             self.gated_conv()
@@ -51,6 +50,11 @@ class GatedCNN():
             b_f = tf.matmul(self.conditional, V_f)
             V_g = get_weights([h_shape, self.W_shape[3]], "h_V")
             b_g = tf.matmul(self.conditional, V_g)
+
+            b_f_shape = tf.shape(b_f)
+            b_f = tf.reshape(b_f, (b_f_shape[0], 1, 1, b_f_shape[1]))
+            b_g_shape = tf.shape(b_g)
+            b_g = tf.reshape(b_g, (b_g_shape[0], 1, 1, b_g_shape[1]))
         else:
             b_f = get_bias(self.b_shape, "v_b")
             b_g = get_bias(self.b_shape, "h_b")
@@ -61,6 +65,7 @@ class GatedCNN():
         if self.payload is not None:
             conv_f += self.payload
             conv_g += self.payload
+
 
         self.fan_out = tf.mul(tf.tanh(conv_f + b_f), tf.sigmoid(conv_g + b_g))
 

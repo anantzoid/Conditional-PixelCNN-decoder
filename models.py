@@ -8,7 +8,9 @@ class PixelCNN():
         self.X_norm = self.X if conf.data == "mnist" else tf.div(self.X, 255.0)
         v_stack_in, h_stack_in = self.X_norm, self.X_norm
         # TODO norm for multichannel: dubtract mean and divide by std feature-wise
-        self.h = tf.placeholder(tf.float32, shape=[None, conf.num_classes])
+        self.h = tf.placeholder(tf.float32, shape=[None, conf.num_classes]) 
+        if conf.conditional is False:
+            self.h = None
 
         for i in range(conf.layers):
             filter_size = 3 if i > 0 else 7

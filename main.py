@@ -28,9 +28,7 @@ def train(conf, data):
                     batch_X, batch_y = data.train.next_batch(conf.batch_size)
                     batch_X = binarize(batch_X.reshape([conf.batch_size, \
                             conf.img_height, conf.img_width, conf.channel]))
-                    y_ = np.zeros((batch_y.shape[0], conf.num_classes))
-                    y_[np.arange(batch_y.shape[0]), batch_y] = 1
-                    batch_y = y_
+                    batch_y = one_hot(batch_y, conf.num_classes) 
                 else:
                     batch_X, pointer = get_batch(data, pointer, conf.batch_size)
 
@@ -39,7 +37,7 @@ def train(conf, data):
             print "Epoch: %d, Cost: %f"%(i, cost)
 
         saver.save(sess, conf.ckpt_file)
-        generate_and_save(sess, model.X, model.pred, conf)
+        generate_and_save(sess, model.X, model.h, model.pred, conf)
 
 
 if __name__ == "__main__":
@@ -51,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--batch_size', type=int, default=100)
     parser.add_argument('--grad_clip', type=int, default=1)
+    parser.add_argument('--conditional', type=bool, default=False)
     parser.add_argument('--data_path', type=str, default='data')
     parser.add_argument('--ckpt_path', type=str, default='ckpts')
     parser.add_argument('--samples_path', type=str, default='samples')
@@ -65,7 +64,7 @@ if __name__ == "__main__":
         conf.img_height = 28
         conf.img_width = 28
         conf.channel = 1
-        conf.num_batches = 10#mnist.train.num_examples // conf.batch_size
+        conf.num_batches = data.train.num_examples // conf.batch_size
     else:
         import cPickle
         data = cPickle.load(open('cifar-100-python/train', 'r'))['data']
@@ -81,7 +80,7 @@ if __name__ == "__main__":
         # Implementing tf.image.per_image_whitening for normalization
         # data = (data-np.mean(data)) / max(np.std(data), 1.0/np.sqrt(sum(data.shape))) * 255.0
 
-        conf.num_batches = data.shape[0] // conf.batch_size
+        conf.num_batches = 10#data.shape[0] // conf.batch_size
 
     ckpt_full_path = os.path.join(conf.ckpt_path, "data=%s_bs=%d_layers=%d_fmap=%d"%(conf.data, conf.batch_size, conf.layers, conf.f_map))
     if not os.path.exists(ckpt_full_path):
