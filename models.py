@@ -2,14 +2,17 @@ import tensorflow as tf
 from layers import GatedCNN
 
 class PixelCNN():
-    def __init__(self, conf):
-        
-        self.X = tf.placeholder(tf.float32, shape=[None, conf.img_height, conf.img_width, conf.channel])
+    def __init__(self, X, conf, h=None):
+        self.X = X
         self.X_norm = self.X if conf.data == "mnist" else tf.div(self.X, 255.0)
         v_stack_in, h_stack_in = self.X_norm, self.X_norm
         # TODO norm for multichannel: dubtract mean and divide by std feature-wise
-        self.h = tf.placeholder(tf.float32, shape=[None, conf.num_classes]) 
-        if conf.conditional is False:
+        if conf.conditional is True:
+            if h is not None:
+                self.h = h
+            else:
+                self.h = tf.placeholder(tf.float32, shape=[None, conf.num_classes]) 
+        else:
             self.h = None
 
         for i in range(conf.layers):

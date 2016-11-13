@@ -37,7 +37,7 @@ def train(conf, data):
             print "Epoch: %d, Cost: %f"%(i, cost)
 
         saver.save(sess, conf.ckpt_file)
-        generate_and_save(sess, model.X, model.h, model.pred, conf)
+        generate_samples(sess, model.X, model.h, model.pred, conf)
 
 
 if __name__ == "__main__":
@@ -76,19 +76,10 @@ if __name__ == "__main__":
         data = np.transpose(data, (0, 2, 3, 1))
         raise ValueError("Specify num_classes")
         conf.num_classes = 10
+        conf.num_batches = 10#data.shape[0] // conf.batch_size
 
         # Implementing tf.image.per_image_whitening for normalization
         # data = (data-np.mean(data)) / max(np.std(data), 1.0/np.sqrt(sum(data.shape))) * 255.0
 
-        conf.num_batches = 10#data.shape[0] // conf.batch_size
-
-    ckpt_full_path = os.path.join(conf.ckpt_path, "data=%s_bs=%d_layers=%d_fmap=%d"%(conf.data, conf.batch_size, conf.layers, conf.f_map))
-    if not os.path.exists(ckpt_full_path):
-        os.makedirs(ckpt_full_path)
-    conf.ckpt_file = os.path.join(ckpt_full_path, "model.ckpt")
-
-    conf.samples_path = os.path.join(conf.samples_path, "epoch=%d_bs=%d_layers=%d_fmap=%d"%(conf.epochs, conf.batch_size, conf.layers, conf.f_map))
-    if not os.path.exists(conf.samples_path):
-        os.makedirs(conf.samples_path)
-
+    conf = makepaths(conf) 
     train(conf, data)
