@@ -60,7 +60,6 @@ def trainPixelCNNAE(conf, data):
 
     encoder = AE(encoder_X)
     conf.num_classes = int(encoder.fan_in.get_shape()[1])
-    # TODO keep X out for main.py also
     decoder = PixelCNN(decoder_X, conf, encoder.fan_in)
     y = decoder.pred
 
@@ -74,16 +73,16 @@ def trainPixelCNNAE(conf, data):
             saver.restore(sess, conf.ckpt_file)
             print "Model Restored"
         
+        pointer = 0
         for i in range(conf.epochs):
             for j in range(conf.num_batches):
                 if conf.data == 'mnist':
                     batch_X = binarize(data.train.next_batch(conf.batch_size)[0].reshape(conf.batch_size, conf.img_height, conf.img_width, conf.channel))
                 else:
-                    # TODO move batch
-                    batch_X = data[0][0][:conf.batch_size]
-                #condition = sess.run(encoder.fan_in, feed_dict={encoder_X:batch_X})
-                _, l = sess.run([trainer, loss], feed_dict={encoder_X: batch_X, decoder_X:batch_X})
-            print l
+                    batch_X, pointer = get_batch(data, pointer, conf.batch_size)
+
+                _, l = sess.run([trainer, loss], feed_dict={encoder_X: batch_X, decoder_X: batch_X})
+            print "Epoch: %d, Cost: %f"%(i, l)
 
         saver.save(sess, conf.ckpt_file)
         generate_ae(sess, encoder_X, decoder_X, y, data, conf)
@@ -116,9 +115,12 @@ if __name__ == "__main__":
         from keras.datasets import cifar10
         data = cifar10.load_data()
         # TODO normalize pixel values
-        data[0][0] = np.transpose(data[0][0], (0, 2, 3, 1))
-        data[1][0] = np.transpose(data[1][0], (0, 2, 3, 1))
-        train_size = data[0][0].shape[0] 
+        data = data[0][0]
+        data = np.transpose(data, (0, 2, 3, 1))
+        conf.img_height = 32
+        conf.img_width = 32
+        conf.channel = 3
+        train_size = data.shape[0] 
 
     conf.num_batches = train_size // conf.batch_size
     conf = makepaths(conf)

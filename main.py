@@ -5,7 +5,8 @@ from models import PixelCNN
 from utils import *
 
 def train(conf, data):
-    model = PixelCNN(conf)
+    X = tf.placeholder(tf.float32, shape=[None, conf.img_height, conf.img_width, conf.channel])
+    model = PixelCNN(conf, X)
 
     trainer = tf.train.RMSPropOptimizer(1e-3)
     gradients = trainer.compute_gradients(model.loss)
@@ -32,12 +33,12 @@ def train(conf, data):
                 else:
                     batch_X, pointer = get_batch(data, pointer, conf.batch_size)
 
-                _, cost = sess.run([optimizer, model.loss], feed_dict={model.X:batch_X, model.h:batch_y})
+                _, cost = sess.run([optimizer, model.loss], feed_dict={X:batch_X, model.h:batch_y})
 
             print "Epoch: %d, Cost: %f"%(i, cost)
 
         saver.save(sess, conf.ckpt_file)
-        generate_samples(sess, model.X, model.h, model.pred, conf)
+        generate_samples(sess, X, model.h, model.pred, conf)
 
 
 if __name__ == "__main__":
@@ -66,20 +67,17 @@ if __name__ == "__main__":
         conf.channel = 1
         conf.num_batches = data.train.num_examples // conf.batch_size
     else:
-        import cPickle
-        data = cPickle.load(open('cifar-100-python/train', 'r'))['data']
+        from keras.datasets import cifar10
+        data = cifar10.load_data()
+        data = data[0][0]
+        data = np.transpose(data, (0, 2, 3, 1))
         conf.img_height = 32
         conf.img_width = 32
         conf.channel = 3
-        data = np.reshape(data, (data.shape[0], conf.channel, \
-                conf.img_height, conf.img_width))
-        data = np.transpose(data, (0, 2, 3, 1))
         raise ValueError("Specify num_classes")
         conf.num_classes = 10
-        conf.num_batches = 10#data.shape[0] // conf.batch_size
+        conf.num_batches = data.shape[0] // conf.batch_size
 
-        # Implementing tf.image.per_image_whitening for normalization
-        # data = (data-np.mean(data)) / max(np.std(data), 1.0/np.sqrt(sum(data.shape))) * 255.0
 
     conf = makepaths(conf) 
     train(conf, data)
