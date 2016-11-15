@@ -32,7 +32,6 @@ def train(conf, data):
                             conf.img_height, conf.img_width, conf.channel]))
                     batch_y = one_hot(batch_y, conf.num_classes) 
                 else:
-                    pointer = 0
                     batch_X, pointer = get_batch(data, pointer, conf.batch_size)
                     #batch_X, batch_y = next(data)
                 data_dict = {X:batch_X}
@@ -40,7 +39,6 @@ def train(conf, data):
                     #TODO extract one-hot classes 
                     data_dict[model.h] = batch_y
                 _, cost,_f = sess.run([optimizer, model.loss, model.fc2], feed_dict=data_dict)
-            print _f[0]
             print "Epoch: %d, Cost: %f"%(i, cost)
 
         saver.save(sess, conf.ckpt_file)
