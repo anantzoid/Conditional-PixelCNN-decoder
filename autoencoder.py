@@ -114,8 +114,8 @@ if __name__ == "__main__":
     else:
         from keras.datasets import cifar10
         data = cifar10.load_data()
-        # TODO normalize pixel values
         data = data[0][0]
+        data /= 255.0
         data = np.transpose(data, (0, 2, 3, 1))
         conf.img_height = 32
         conf.img_width = 32

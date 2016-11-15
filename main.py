@@ -4,9 +4,10 @@ import argparse
 from models import PixelCNN
 from utils import *
 
+tf.set_random_seed(100)
 def train(conf, data):
     X = tf.placeholder(tf.float32, shape=[None, conf.img_height, conf.img_width, conf.channel])
-    model = PixelCNN(conf, X)
+    model = PixelCNN(X, conf)
 
     trainer = tf.train.RMSPropOptimizer(1e-3)
     gradients = trainer.compute_gradients(model.loss)
@@ -31,14 +32,20 @@ def train(conf, data):
                             conf.img_height, conf.img_width, conf.channel]))
                     batch_y = one_hot(batch_y, conf.num_classes) 
                 else:
+                    pointer = 0
                     batch_X, pointer = get_batch(data, pointer, conf.batch_size)
-
-                _, cost = sess.run([optimizer, model.loss], feed_dict={X:batch_X, model.h:batch_y})
-
+                    #batch_X, batch_y = next(data)
+                data_dict = {X:batch_X}
+                if conf.conditional is True:
+                    #TODO extract one-hot classes 
+                    data_dict[model.h] = batch_y
+                _, cost,_f = sess.run([optimizer, model.loss, model.fc2], feed_dict=data_dict)
+            print _f[0]
             print "Epoch: %d, Cost: %f"%(i, cost)
 
         saver.save(sess, conf.ckpt_file)
-        generate_samples(sess, X, model.h, model.pred, conf)
+        generate_samples(sess, X, model.h, model.pred_sample, conf, "sample")
+        generate_samples(sess, X, model.h, model.pred_argmax, conf, "argmax")
 
 
 if __name__ == "__main__":
@@ -69,15 +76,22 @@ if __name__ == "__main__":
     else:
         from keras.datasets import cifar10
         data = cifar10.load_data()
-        data = data[0][0]
+        labels = data[0][1]
+        data = data[0][0] / 255.0
         data = np.transpose(data, (0, 2, 3, 1))
         conf.img_height = 32
         conf.img_width = 32
         conf.channel = 3
-        raise ValueError("Specify num_classes")
         conf.num_classes = 10
         conf.num_batches = data.shape[0] // conf.batch_size
-
+        '''
+        # TODO debug shape
+        from keras.preprocessing.image import ImageDataGenerator
+        datagen = ImageDataGenerator(featurewise_center=True,
+                featurewise_std_normalization=True)
+        datagen.fit(data)
+        data = datagen.flow(data, labels, batch_size=conf.batch_size)
+        '''
 
     conf = makepaths(conf) 
     train(conf, data)
