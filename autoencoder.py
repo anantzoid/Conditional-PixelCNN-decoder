@@ -6,25 +6,25 @@ from models import PixelCNN
 
 class AE(object):
     def __init__(self, X):
-        self.fmap_out = 32
+        self.num_layers = 2
+        self.fmap_out = [8, 32]
         self.fmap_in = conf.channel
         self.fan_in = X
-        self.num_layers = 3
-        self.filter_size = 3
+        self.filter_size = 4
         self.W = []
         self.strides = [1, 1, 1, 1]
 
         for i in range(self.num_layers):
-            if i == self.num_layers -1 :
-                self.fmap_out = 10 
-            self.W.append(tf.Variable(tf.truncated_normal(shape=[self.filter_size, self.filter_size, self.fmap_in, self.fmap_out], stddev=0.1), name="W_%d"%i))
-            b = tf.Variable(tf.ones(shape=[self.fmap_out], dtype=tf.float32), name="encoder_b_%d"%i)
+            self.W.append(tf.Variable(tf.truncated_normal(shape=[self.filter_size, self.filter_size, self.fmap_in, self.fmap_out[i]], stddev=0.1), name="W_%d"%i))
+            b = tf.Variable(tf.ones(shape=[self.fmap_out[i]], dtype=tf.float32), name="encoder_b_%d"%i)
             en_conv = tf.nn.conv2d(self.fan_in, self.W[i], self.strides, padding='SAME', name="encoder_conv_%d"%i)
+            en_pool = tf.nn.max_pool(en_conv, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME', name="encoder_pool_%d"%i)
 
-            self.fan_in = tf.tanh(tf.add(en_conv, b))
-            self.fmap_in = self.fmap_out
+            self.fan_in = tf.tanh(tf.add(en_pool, b))
+            self.fmap_in = self.fmap_out[i]
 
-        self.fan_in = tf.reshape(self.fan_in, (-1, conf.img_width*conf.img_height*self.fmap_out))
+        op_shape = self.fan_in.get_shape()
+        self.fan_in = tf.reshape(self.fan_in, (-1, int(op_shape[1])*int(op_shape[2])*int(op_shape[3])))
 
     def decoder(self):
         self.W.reverse()

@@ -8,7 +8,7 @@ def binarize(images):
     return (np.random.uniform(size=images.shape) < images).astype(np.float32)
 
 def generate_samples(sess, X, h, pred, conf, suff):
-    n_row, n_col = 5, 5
+    n_row, n_col = 10,10
     samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     # TODO make it generic
     labels = one_hot(np.array([1,2,3,4,5]*5), conf.num_classes)
@@ -28,8 +28,8 @@ def generate_samples(sess, X, h, pred, conf, suff):
     save_images(samples, n_row, n_col, conf, suff)
 
 
-def generate_ae(sess, encoder_X, decoder_X, y, data, conf):
-    n_row, n_col = 5, 5
+def generate_ae(sess, encoder_X, decoder_X, y, data, conf, suff=''):
+    n_row, n_col = 1,1
     samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     if conf.data == 'mnist':
         labels = binarize(data.train.next_batch(n_row*n_col)[0].reshape(n_row*n_col, conf.img_height, conf.img_width, conf.channel))
@@ -44,7 +44,9 @@ def generate_ae(sess, encoder_X, decoder_X, y, data, conf):
                     next_sample = binarize(next_sample)
                 samples[:, i, j, k] = next_sample[:, i, j, k]
 
-    save_images(samples, n_row, n_col, conf, '')
+        np.save('preds_'+suff+'.npy', samples)
+        print "height:%d"%i
+    save_images(samples, n_row, n_col, conf, suff)
 
 def save_images(samples, n_row, n_col, conf, suff):
     images = samples 

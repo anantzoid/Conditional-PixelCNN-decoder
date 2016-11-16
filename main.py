@@ -40,17 +40,16 @@ def train(conf, data):
                     data_dict[model.h] = batch_y
                 _, cost,_f = sess.run([optimizer, model.loss, model.fc2], feed_dict=data_dict)
             print "Epoch: %d, Cost: %f"%(i, cost)
-
-        saver.save(sess, conf.ckpt_file)
-        generate_samples(sess, X, model.h, model.pred_sample, conf, "sample")
-        generate_samples(sess, X, model.h, model.pred_argmax, conf, "argmax")
+            if (i+1)%10 == 0:
+                saver.save(sess, conf.ckpt_file)
+                generate_samples(sess, X, model.h, model.pred, conf, "argmax")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--type', type=str, default='train')
     parser.add_argument('--data', type=str, default='mnist')
-    parser.add_argument('--layers', type=int, default=5)
+    parser.add_argument('--layers', type=int, default=12)
     parser.add_argument('--f_map', type=int, default=32)
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--batch_size', type=int, default=100)
