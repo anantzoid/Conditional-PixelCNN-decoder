@@ -2,16 +2,17 @@ import numpy as np
 import os
 import scipy.misc
 from datetime import datetime
-
+import tensorflow as tf
 
 def binarize(images):
     return (np.random.uniform(size=images.shape) < images).astype(np.float32)
 
 def generate_samples(sess, X, h, pred, conf, suff):
+    print "Generating Sample Images..."
     n_row, n_col = 10,10
     samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     # TODO make it generic
-    labels = one_hot(np.array([1,2,3,4,5]*5), conf.num_classes)
+    labels = one_hot(np.array([0,1,2,3,4,5,6,7,8,9]*10), conf.num_classes)
 
     for i in xrange(conf.img_height):
         for j in xrange(conf.img_width):
@@ -23,13 +24,13 @@ def generate_samples(sess, X, h, pred, conf, suff):
                 if conf.data == "mnist":
                     next_sample = binarize(next_sample)
                 samples[:, i, j, k] = next_sample[:, i, j, k]
-        np.save('preds_'+suff+'.npy', samples)
-        print "height:%d"%i
+
     save_images(samples, n_row, n_col, conf, suff)
 
 
 def generate_ae(sess, encoder_X, decoder_X, y, data, conf, suff=''):
-    n_row, n_col = 5,5
+    print "Generating Sample Images..."
+    n_row, n_col = 10,10
     samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     if conf.data == 'mnist':
         labels = binarize(data.train.next_batch(n_row*n_col)[0].reshape(n_row*n_col, conf.img_height, conf.img_width, conf.channel))
@@ -44,9 +45,8 @@ def generate_ae(sess, encoder_X, decoder_X, y, data, conf, suff=''):
                     next_sample = binarize(next_sample)
                 samples[:, i, j, k] = next_sample[:, i, j, k]
 
-        np.save('preds_'+suff+'.npy', samples)
-        print "height:%d"%i
     save_images(samples, n_row, n_col, conf, suff)
+
 
 def save_images(samples, n_row, n_col, conf, suff):
     images = samples 
@@ -70,6 +70,7 @@ def get_batch(data, pointer, batch_size):
     pointer += 1
     return [batch, pointer]
 
+
 def one_hot(batch_y, num_classes):
     y_ = np.zeros((batch_y.shape[0], num_classes))
     y_[np.arange(batch_y.shape[0]), batch_y] = 1
@@ -85,5 +86,9 @@ def makepaths(conf):
     conf.samples_path = os.path.join(conf.samples_path, "epoch=%d_bs=%d_layers=%d_fmap=%d"%(conf.epochs, conf.batch_size, conf.layers, conf.f_map))
     if not os.path.exists(conf.samples_path):
         os.makedirs(conf.samples_path)
+
+    if tf.gfile.Exists(conf.summary_path):
+        tf.gfile.DeleteRecursively(conf.summary_path)
+    tf.gfile.MakeDirs(conf.summary_path)
 
     return conf

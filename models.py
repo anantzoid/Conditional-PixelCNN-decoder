@@ -1,14 +1,16 @@
 import tensorflow as tf
-from layers import GatedCNN
+from layers import *
 
-class PixelCNN():
+class PixelCNN(object):
     def __init__(self, X, conf, h=None):
         self.X = X
         if conf.data == "mnist":
             self.X_norm = X
         else:
+            '''
+                Image normalization for CIFAR-10 was supposed to be done here
+            '''
             self.X_norm = X
-            #self.X_norm = tf.image.per_image_whitening(X)
         v_stack_in, h_stack_in = self.X_norm, self.X_norm
 
         if conf.conditional is True:
@@ -56,6 +58,44 @@ class PixelCNN():
 
             self.loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(self.fc2, tf.cast(tf.reshape(self.X, [-1]), dtype=tf.int32)))
 
+            '''
+                Since this code was not run on CIFAR-10, I'm not sure which 
+                would be a suitable way to generate 3-channel images. Below are
+                the 2 methods which may be used, with the first one (self.pred)
+                being more likely.
+            '''
+            self.pred = tf.reshape(tf.multinomial(tf.nn.softmax(self.fc2), num_samples=1, seed=100), tf.shape(self.X))
             self.pred_argmax = tf.reshape(tf.argmax(tf.nn.softmax(self.fc2), dimension=tf.rank(self.fc2) - 1), tf.shape(self.X))
-            self.pred_sample = tf.reshape(tf.multinomial(tf.nn.softmax(self.fc2), num_samples=1, seed=100), tf.shape(self.X))
+
+
+class ConvolutionalEncoder(object):
+    def __init__(self, X, conf):
+        '''
+            This is the 6-layer architecture for Convolutional Autoencoder
+            mentioned in the original paper: 
+            Stacked Convolutional Auto-Encoders for Hierarchical Feature Extraction
+
+            Note that only the encoder part is implemented as PixelCNN is taken
+            as the decoder.
+        '''
+
+        W_conv1 = get_weights([5, 5, conf.channel, 100], "W_conv1")
+        b_conv1 = get_bias([100], "b_conv1")
+        conv1 = tf.nn.relu(conv_op(X, W_conv1) + b_conv1)
+        pool1 = max_pool_2x2(conv1)
+
+        W_conv2 = get_weights([5, 5, 100, 150], "W_conv2")
+        b_conv2 = get_bias([150], "b_conv2")
+        conv2 = tf.nn.relu(conv_op(pool1, W_conv2) + b_conv2)
+        pool2 = max_pool_2x2(conv2)
+
+        W_conv3 = get_weights([3, 3, 150, 200], "W_conv3")
+        b_conv3 = get_bias([200], "b_conv3")
+        conv3 = tf.nn.relu(conv_op(pool2, W_conv3) + b_conv3)
+        conv3_reshape = tf.reshape(conv3, (-1, 7*7*200))
+
+        W_fc = get_weights([7*7*200, 10], "W_fc")
+        b_fc = get_bias([10], "b_fc")
+        self.pred = tf.nn.softmax(tf.add(tf.matmul(conv3_reshape, W_fc), b_fc))
+
 
