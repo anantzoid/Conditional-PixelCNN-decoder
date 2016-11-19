@@ -29,7 +29,7 @@ def generate_samples(sess, X, h, pred, conf, suff):
 
 
 def generate_ae(sess, encoder_X, decoder_X, y, data, conf, suff=''):
-    n_row, n_col = 1,1
+    n_row, n_col = 5,5
     samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     if conf.data == 'mnist':
         labels = binarize(data.train.next_batch(n_row*n_col)[0].reshape(n_row*n_col, conf.img_height, conf.img_width, conf.channel))
