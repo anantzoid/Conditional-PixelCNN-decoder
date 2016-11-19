@@ -70,7 +70,7 @@ if __name__ == "__main__":
         conf.img_height = 28
         conf.img_width = 28
         conf.channel = 1
-        conf.num_batches = 10#data.train.num_examples // conf.batch_size
+        conf.num_batches = data.train.num_examples // conf.batch_size
     else:
         from keras.datasets import cifar10
         data = cifar10.load_data()
