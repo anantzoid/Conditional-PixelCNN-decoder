@@ -72,7 +72,7 @@ class GatedCNN():
             conv_f += self.payload
             conv_g += self.payload
 
-        self.fan_out = tf.mul(tf.tanh(conv_f + b_f), tf.sigmoid(conv_g + b_g))
+        self.fan_out = tf.multiply(tf.tanh(conv_f + b_f), tf.sigmoid(conv_g + b_g))
 
     def simple_conv(self):
         W = get_weights(self.W_shape, "W", mask=self.mask)
