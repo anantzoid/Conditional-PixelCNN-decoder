@@ -48,7 +48,7 @@ class PixelCNN(object):
         if conf.data == "mnist":
             with tf.variable_scope("fc_2"):
                 self.fc2 = GatedCNN([1, 1, 1], fc1, gated=False, mask='b', activation=False).output()
-            self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.fc2, self.X))
+            self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.fc2, labels=self.X))
             self.pred = tf.nn.sigmoid(self.fc2)
         else:
             color_dim = 256
