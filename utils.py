@@ -67,7 +67,7 @@ def get_batch(data, pointer, batch_size):
     if (batch_size + 1) * pointer >= data.shape[0]:
         pointer = 0
     batch = data[batch_size * pointer : batch_size * (pointer + 1)]
-    pointer += 1
+    pointer = pointer+1
     return [batch, pointer]
 
 
