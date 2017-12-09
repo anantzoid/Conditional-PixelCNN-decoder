@@ -8,15 +8,15 @@ def binarize(images):
     return (np.random.uniform(size=images.shape) < images).astype(np.float32)
 
 def generate_samples(sess, X, h, pred, conf, suff):
-    print "Generating Sample Images..."
+    print("Generating Sample Images...")
     n_row, n_col = 10,10
     samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     # TODO make it generic
     labels = one_hot(np.array([0,1,2,3,4,5,6,7,8,9]*10), conf.num_classes)
 
-    for i in xrange(conf.img_height):
-        for j in xrange(conf.img_width):
-            for k in xrange(conf.channel):
+    for i in range(conf.img_height):
+        for j in range(conf.img_width):
+            for k in range(conf.channel):
                 data_dict = {X:samples}
                 if conf.conditional is True:
                     data_dict[h] = labels
@@ -29,7 +29,7 @@ def generate_samples(sess, X, h, pred, conf, suff):
 
 
 def generate_ae(sess, encoder_X, decoder_X, y, data, conf, suff=''):
-    print "Generating Sample Images..."
+    print("Generating Sample Images...")
     n_row, n_col = 10,10
     samples = np.zeros((n_row*n_col, conf.img_height, conf.img_width, conf.channel), dtype=np.float32)
     if conf.data == 'mnist':
@@ -37,9 +37,9 @@ def generate_ae(sess, encoder_X, decoder_X, y, data, conf, suff=''):
     else:
         labels = get_batch(data, 0, n_row*n_col) 
 
-    for i in xrange(conf.img_height):
-        for j in xrange(conf.img_width):
-            for k in xrange(conf.channel):
+    for i in range(conf.img_height):
+        for j in range(conf.img_width):
+            for k in range(conf.channel):
                 next_sample = sess.run(y, {encoder_X: labels, decoder_X: samples})
                 if conf.data == 'mnist':
                     next_sample = binarize(next_sample)

@@ -2,7 +2,7 @@ import tensorflow as tf
 from layers import *
 
 class PixelCNN(object):
-    def __init__(self, X, conf, h=None):
+    def __init__(self, X, conf, full_horizontal=True, h=None):
         self.X = X
         if conf.data == "mnist":
             self.X_norm = X
@@ -27,33 +27,33 @@ class PixelCNN(object):
             residual = True if i > 0 else False
             i = str(i)
             with tf.variable_scope("v_stack"+i):
-                v_stack = GatedCNN([filter_size, filter_size, conf.f_map], v_stack_in, mask=mask, conditional=self.h).output()
+                v_stack = GatedCNN([filter_size, filter_size, conf.f_map], v_stack_in, False, mask=mask, conditional=self.h).output()
                 v_stack_in = v_stack
 
             with tf.variable_scope("v_stack_1"+i):
-                v_stack_1 = GatedCNN([1, 1, conf.f_map], v_stack_in, gated=False, mask=mask).output()
+                v_stack_1 = GatedCNN([1, 1, conf.f_map], v_stack_in, False, gated=False, mask=mask).output()
 
             with tf.variable_scope("h_stack"+i):
-                h_stack = GatedCNN([1, filter_size, conf.f_map], h_stack_in, payload=v_stack_1, mask=mask, conditional=self.h).output()
+                h_stack = GatedCNN([filter_size if full_horizontal else 1, filter_size, conf.f_map], h_stack_in, True, payload=v_stack_1, mask=mask, conditional=self.h).output()
 
             with tf.variable_scope("h_stack_1"+i):
-                h_stack_1 = GatedCNN([1, 1, conf.f_map], h_stack, gated=False, mask=mask).output()
+                h_stack_1 = GatedCNN([1, 1, conf.f_map], h_stack, True, gated=False, mask=mask).output()
                 if residual:
                     h_stack_1 += h_stack_in # Residual connection
                 h_stack_in = h_stack_1
 
         with tf.variable_scope("fc_1"):
-            fc1 = GatedCNN([1, 1, conf.f_map], h_stack_in, gated=False, mask='b').output()
+            fc1 = GatedCNN([1, 1, conf.f_map], h_stack_in, True, gated=False, mask='b').output()
 
         if conf.data == "mnist":
             with tf.variable_scope("fc_2"):
-                self.fc2 = GatedCNN([1, 1, 1], fc1, gated=False, mask='b', activation=False).output()
+                self.fc2 = GatedCNN([1, 1, 1], fc1, True, gated=False, mask='b', activation=False).output()
             self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.fc2, labels=self.X))
             self.pred = tf.nn.sigmoid(self.fc2)
         else:
             color_dim = 256
             with tf.variable_scope("fc_2"):
-                self.fc2 = GatedCNN([1, 1, conf.channel * color_dim], fc1, gated=False, mask='b', activation=False).output()
+                self.fc2 = GatedCNN([1, 1, conf.channel * color_dim], fc1, True, gated=False, mask='b', activation=False).output()
                 self.fc2 = tf.reshape(self.fc2, (-1, color_dim))
 
             self.loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(self.fc2, tf.cast(tf.reshape(self.X, [-1]), dtype=tf.int32)))

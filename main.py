@@ -21,10 +21,10 @@ def train(conf, data):
         sess.run(tf.initialize_all_variables())
         if os.path.exists(conf.ckpt_file):
             saver.restore(sess, conf.ckpt_file)
-            print "Model Restored"
+            print("Model Restored")
        
         if conf.epochs > 0:
-            print "Started Model Training..."
+            print("Started Model Training...")
         pointer = 0
         for i in range(conf.epochs):
             for j in range(conf.num_batches):
@@ -39,7 +39,7 @@ def train(conf, data):
                 if conf.conditional is True:
                     data_dict[model.h] = batch_y
                 _, cost = sess.run([optimizer, model.loss], feed_dict=data_dict)
-            print "Epoch: %d, Cost: %f"%(i, cost)
+            print("Epoch: %d, Cost: %f"%(i, cost))
             if (i+1)%10 == 0:
                 saver.save(sess, conf.ckpt_file)
                 generate_samples(sess, X, model.h, model.pred, conf, "")
