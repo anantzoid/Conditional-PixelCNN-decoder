@@ -27,11 +27,11 @@ def trainAE(conf, data):
 
         if os.path.exists(conf.ckpt_file):
             saver.restore(sess, conf.ckpt_file)
-            print "Model Restored"
+            print("Model Restored")
 
         # TODO The training part below and in main.py could be generalized
         if conf.epochs > 0:
-            print "Started Model Training..."
+            print("Started Model Training...")
         pointer = 0
         step = 0
         for i in range(conf.epochs):
@@ -45,7 +45,7 @@ def trainAE(conf, data):
                 writer.add_summary(summary, step)
                 step += 1
 
-            print "Epoch: %d, Cost: %f"%(i, l)
+            print("Epoch: %d, Cost: %f"%(i, l))
             if (i+1)%10 == 0:
                 saver.save(sess, conf.ckpt_file)
                 generate_ae(sess, encoder_X, decoder_X, y, data, conf, str(i))
