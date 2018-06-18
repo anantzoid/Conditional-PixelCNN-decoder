@@ -31,13 +31,13 @@ class PixelCNN(object):
                 v_stack_in = v_stack
 
             with tf.variable_scope("v_stack_1"+i):
-                v_stack_1 = GatedCNN([1, 1, conf.f_map], v_stack_in, False, gated=False, mask=mask).output()
+                v_stack_1 = GatedCNN([1, 1, conf.f_map], v_stack_in, False, gated=False, mask=None).output()
 
             with tf.variable_scope("h_stack"+i):
                 h_stack = GatedCNN([filter_size if full_horizontal else 1, filter_size, conf.f_map], h_stack_in, True, payload=v_stack_1, mask=mask, conditional=self.h).output()
 
             with tf.variable_scope("h_stack_1"+i):
-                h_stack_1 = GatedCNN([1, 1, conf.f_map], h_stack, True, gated=False, mask=mask).output()
+                h_stack_1 = GatedCNN([1, 1, conf.f_map], h_stack, True, gated=False, mask=None).output()
                 if residual:
                     h_stack_1 += h_stack_in # Residual connection
                 h_stack_in = h_stack_1
